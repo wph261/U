@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tarih-2 Immersive Mikro Öğrenme</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .card-flip-container {
+            perspective: 1000px;
+        }
+        .card-flip-inner {
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .card-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            backface-visibility: hidden;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-50 bg-slate-800/95 backdrop-blur border-b border-slate-700/80 px-4 py-3 flex justify-between items-center shadow-md">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-graduation-cap text-white text-base"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight">Tarih-2 Immersive</h1>
+                <p class="text-xs text-indigo-400 font-medium">11 Konu Tam Simülasyon</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="text-xs bg-slate-700/80 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full font-mono flex items-center gap-1.5 shadow-inner">
+                <i class="fa-solid fa-star text-amber-400"></i>
+                <span id="score-counter">0</span> Puan
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 flex flex-col justify-center">
+
+        <!-- View 1: Topics & Quick Start -->
+        <div id="topics-view" class="space-y-4">
+            <div class="bg-gradient-to-r from-indigo-900/60 to-purple-900/60 border border-indigo-500/30 rounded-2xl p-4 shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold text-white">İmmersive Mod 🚀</h2>
+                    <span class="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2 py-0.5 rounded-full">11 Konu Simülatörü</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Her konu için özel Canvas simülasyonları, yıldız efektleri, sesler ve detaylı konu anlatım kartlarıyla sınava tam donanımlı hazırlan!
+                </p>
+                
+                <button id="start-random-btn" class="w-full mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Rastgele Soru & Simülasyon Başlat</span>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Tüm 11 Konu Başlığı</h3>
+                <span class="text-xs text-indigo-400 font-mono" id="pool-count">0 Soru Aktif</span>
+            </div>
+
+            <div class="space-y-2.5 max-h-[360px] overflow-y-auto hide-scrollbar" id="topic-list">
+                <!-- Dynamic topic items injected via JS -->
+            </div>
+        </div>
+
+        <!-- View 2: Flashcard & Micro Learning View -->
+        <div id="card-view" class="hidden flex-col h-full justify-between">
+            
+            <!-- Progress Top Bar -->
+            <div class="flex justify-between items-center mb-3">
+                <button id="back-btn" class="text-slate-400 hover:text-white text-sm flex items-center gap-1.5 font-medium py-1.5 px-3 rounded-lg bg-slate-800 border border-slate-700">
+                    <i class="fa-solid fa-chevron-left text-xs"></i> Menü
+                </button>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono px-3 py-1 rounded-full bg-slate-800 text-purple-300 border border-purple-500/30" id="card-step-indicator">
+                        Soru #1
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Flip Area -->
+            <div class="card-flip-container w-full my-auto" style="min-height: 480px;">
+                <div id="card-flip-inner" class="card-flip-inner relative w-full h-full">
+                    
+                    <!-- Card Front: Summary & Canvas Simulator -->
+                    <div class="card-front bg-slate-800 border border-slate-700 rounded-3xl p-4 shadow-2xl flex flex-col justify-between h-full min-h-[480px]">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold uppercase tracking-widest text-indigo-400" id="card-category">Kategori</span>
+                                <span class="text-xl" id="card-icon">🏛️</span>
+                            </div>
+                            <h2 class="text-base font-bold text-white mb-2" id="card-title">Konu Başlığı</h2>
+                            
+                            <!-- Interactive Canvas Simulator Container -->
+                            <div class="relative w-full h-32 bg-slate-900 rounded-xl overflow-hidden border border-slate-700 mb-3 shadow-inner">
+                                <canvas id="topic-canvas" class="w-full h-full"></canvas>
+                                <div class="absolute bottom-1 right-2 text-[10px] bg-slate-800/80 text-indigo-300 px-2 py-0.5 rounded border border-slate-700">
+                                    <i class="fa-solid fa-vr-cardboard"></i> Canlı Simülasyon
+                                </div>
+                            </div>
+
+                            <!-- Expandable Summary Box -->
+                            <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 text-xs text-slate-300 leading-relaxed max-h-32 overflow-y-auto hide-scrollbar space-y-1.5" id="card-summary">
+                                <!-- Dynamic Summary Content -->
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 mt-2">
+                            <a id="youtube-link-btn" href="#" target="_blank" class="w-full bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 text-xs font-medium py-2 px-3 rounded-xl flex items-center justify-center gap-2 transition">
+                                <i class="fa-brands fa-youtube text-red-400 text-sm"></i>
+                                <span>YouTube Ders Anlatımına Git</span>
+                            </a>
+
+                            <button id="show-quiz-btn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition text-xs">
+                                <span>Soruyu Çözmeye Başla</span>
+                                <i class="fa-solid fa-arrow-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card Back: Mini Quiz -->
+                    <div class="card-back absolute top-0 left-0 w-full h-full bg-slate-800 border border-slate-700 rounded-3xl p-4 shadow-2xl flex flex-col justify-between min-h-[480px]">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold uppercase tracking-wider text-purple-400" id="quiz-category">Mini Test</span>
+                                <button id="flip-back-btn" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 bg-slate-700/50 px-2 py-1 rounded">
+                                    <i class="fa-solid fa-eye text-[10px]"></i> Özete Dön
+                                </button>
+                            </div>
+                            <h3 class="text-xs font-semibold text-slate-100 mb-3 leading-snug" id="quiz-question">Soru metni yükleniyor...</h3>
+
+                            <div class="space-y-2" id="quiz-options">
+                                <!-- Quiz Options via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Quiz Feedback Message -->
+                        <div id="quiz-feedback" class="hidden my-2 p-2 rounded-xl text-xs flex items-start gap-2">
+                            <!-- Feedback via JS -->
+                        </div>
+
+                        <div>
+                            <button id="next-random-question-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/40">
+                                <span>Sonraki Soru & Simülasyon</span>
+                                <i class="fa-solid fa-shuffle text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bg-slate-800/90 backdrop-blur border-t border-slate-700 py-2.5 px-6 flex justify-around items-center max-w-md w-full mx-auto">
+        <button id="nav-list" class="flex flex-col items-center text-indigo-400 font-medium text-xs">
+            <i class="fa-solid fa-layer-group text-lg mb-1"></i>
+            <span>Konular</span>
+        </button>
+        <button id="nav-random" class="flex flex-col items-center text-slate-400 hover:text-slate-200 font-medium text-xs">
+            <i class="fa-solid fa-dice text-lg mb-1"></i>
+            <span>Rastgele</span>
+        </button>
+        <button id="nav-reset" class="flex flex-col items-center text-slate-400 hover:text-slate-200 font-medium text-xs">
+            <i class="fa-solid fa-rotate-left text-lg mb-1"></i>
+            <span>Sıfırla</span>
+        </button>
+    </nav>
+
+    <!-- App Logic & Canvas Engine -->
+    <script>
+        // Full 11 History Topics Dataset with custom simulators and YouTube links
+        const questionsPoolData = [
+            {
+                id: 1,
+                category: "1. Ünite: Eski Çağ",
+                title: "İlk Çağ Uygarlıkları ve Yazı",
+                icon: "📜",
+                youtube: "https://www.youtube.com/results?search_query=tarih+2+ilk+cag+uygarliklari",
+                summary: `
+                    • <b>Mısırlılar:</b> Hiyeroglif (resim yazısı) kullanmışlar, papirüs kâğıdını üretmişler ve mumyalama ile tıp/anatomi bilimini geliştirmişlerdir.<br/>
+                    • <b>Sümerler:</b> Mezopotamya'da çivi yazısını icat etmiş, ziggurat adı verilen tapınaklar kurmuş ve Ay yılı esaslı takvimi bulmuşlardır.<br/>
+                    • <b>Fenikeliler:</b> Akdeniz ticaretinde koloniler kurmuş, harf alfabesini (22 harf) geliştirerek günümüz Latin alfabesinin temelini atmışlardır.
+                `,
+                tip: "Hiyeroglif = Mısır | Ziggurat/Çivi Yazısı = Sümer | Harf Alfabesi = Fenike",
+                simulatorType: "egypt_sumer",
+                question: "Hiyeroglif resim yazısını geliştiren, papirüsü icat eden ve Ay takvimini bulan İlk Çağ medeniyetleri sırasıyla hangileridir?",
+                options: [
+                    "Yunanlar - Hititler",
+                    "Mısırlılar - Sümerler",
+                    "Sümerler - Fenikeliler",
+                    "Mısırlılar - Yunanlar"
+                ],
+                correct: 1,
+                explanation: "Hiyeroglif ve papirüs Mısırlılara, çivi yazısı ve Ay takvimi Sümerlere aittir."
+            },
+            {
+                id: 2,
+                category: "2. Ünite: Türk Tarihi",
+                title: "Konargöçer Türk Yaşamı",
+                icon: "⛺",
+                youtube: "https://www.youtube.com/results?search_query=konargocer+turk+yasamı+tarih",
+                summary: `
+                    • Konargöçer Türkler bozkır coğrafyasında küçükbaş hayvancılıkla uğraşmış; kürk, keçe, deri ve et üretimi yapmışlardır.<br/>
+                    • Yazlak ve kışlaklar arasında mevsimsel göçler gerçekleştirmişlerdir.<br/>
+                    • İhtiyaç fazlası hayvansal ürünleri yerleşik komşularına vererek tarım ve hububat ürünleri almışlardır.
+                `,
+                tip: "Göçebe yaşamın temel geçim kaynağı hayvancılık ve dokumacılıktır.",
+                question: "Konargöçer Türklerin hayvancılık, keçe dokuma ve deri işleme faaliyetleri doğrudan hangisi ile ilişkilidir?",
+                options: [
+                    "Hukuki yazılı kurallar",
+                    "Askerî strateji ve seferler",
+                    "Dinî inanç esasları",
+                    "Ekonomi ve geçim kaynakları"
+                ],
+                correct: 3,
+                explanation: "Hayvancılık ve el sanatları üretim faaliyetleri doğrudan ekonomi ile ilgilidir."
+            },
+            {
+                id: 3,
+                category: "3. Ünite: Dünya Tarihi",
+                title: "Germen Kavimleri Göçü",
+                icon: "🏹",
+                youtube: "https://www.youtube.com/results?search_query=kavimler+gocu+tarih+2",
+                summary: `
+                    • Kuzey Avrupa'daki Germen kavimlerinin yaşadığı alanlar bataklıklar, sert soğuklar ve verimsiz ormanlarla kaplıydı.<br/>
+                    • İklim şartlarının ağırlaşması, kuraklık ve nüfus artışı göçleri tetiklemiştir.<br/>
+                    • Bu göçler Roma İmparatorluğu'nun ikiye ayrılmasına ve Avrupa'nın etnik yapısının değişmesine yol açmıştır.
+                `,
+                tip: "Germen göçlerinin temel sebebi ağır iklim ve coğrafi olumsuzluklardır.",
+                question: "Germen kavimlerinin yaşadıkları bölgeleri terk edip Roma topraklarına göç etmesindeki temel etken nedir?",
+                options: [
+                    "Coğrafi ve İklimsel Zorluklar",
+                    "Sanayi devrimi arayışı",
+                    "Meşruti yönetim talebi",
+                    "Deniz aşırı ticaret"
+                ],
+                correct: 0,
+                explanation: "Ağır iklim şartları ve geçim sıkıntısı göçlerin coğrafi nedenidir."
+            },
+            {
+                id: 4,
+                category: "4. Ünite: Türk Tarihi",
+                title: "Türk Göçleri ve Siyasi Yapı",
+                icon: "🌍",
+                youtube: "https://www.youtube.com/results?search_query=turk+goclerinin+sebepleri+ve+sonuclari",
+                summary: `
+                    • Türkler kuraklık, otlakların azalması ve boylar arası mücadeleler yüzünden Asya, Avrupa ve Ön Asya'ya yayılmışlardır.<br/>
+                    • Gittikleri her coğrafyada teşkilatçı yapıları sayesinde yeni devletler kurmuşlardır.<br/>
+                    • Bu durum Türk tarihinin tek bir havzada incelenmesini zorlaştırmıştır.
+                `,
+                tip: "Geniş coğrafyaya yayılma = Türk tarihini bir bütün olarak incelemeyi güçleştirir.",
+                question: "Türklerin farklı kıtalara göç etmesinin tarih araştırmalarına yansıyan temel zorluğu nedir?",
+                options: [
+                    "Türk kültürünün tamamen unutulması",
+                    "Türk tarihini bütün halinde incelemenin zorlaşması",
+                    "Askeri teşkilatın tamamen yok olması",
+                    "Gök Tanrı inancının yayılması"
+                ],
+                correct: 1,
+                explanation: "Farklı coğrafyalara dağılım, tarihi bütüncül incelemeyi zorlaştırır."
+            },
+            {
+                id: 5,
+                category: "5. Ünite: Doğu Medeniyeti",
+                title: "Hindistan ve Kast Sistemi",
+                icon: "🕌",
+                youtube: "https://www.youtube.com/results?search_query=hindistan+kast+sistemi+tarih",
+                summary: `
+                    • Hint toplumunda mesleklere ve soyluluğa dayalı katı sınıflı Kast Sistemi uygulanmıştır.<br/>
+                    • Kastlar arası geçiş ve evlilik kesinlikle yasaktır.<br/>
+                    • Bu sosyal ayrımcılık ülkede ortak bir ulus bilincinin ve siyasi birliğin kurulmasını engellemiştir.
+                `,
+                tip: "Kast Sistemi = Toplumsal bölünme = Siyasi birliğin kurulamaması.",
+                question: "Eski Hindistan'da toplumsal sınıfların katı kurallarla ayrıldığı Kast Sistemi neye engel olmuştur?",
+                    options: [
+                    "Tarımsal üretime",
+                    "Siyasi birliğin ve ulus bilincinin oluşmasına",
+                    "Anıtsal tapınakların yapımına",
+                    "Uluslararası ticarete"
+                ],
+                correct: 1,
+                explanation: "Kast sistemi ulusal kaynaşmayı önleyerek siyasi birliği engellemiştir."
+            },
+            {
+                id: 6,
+                category: "6. Ünite: Türk Tarihi",
+                title: "Uygurlar ve Maniheizm",
+                icon: "🏛️",
+                youtube: "https://www.youtube.com/results?search_query=uygurlar+maniheizm+inanci",
+                summary: `
+                    • Uygur Kağanı Böğü Kağan döneminde Maniheizm dini kabul edilmiştir.<br/>
+                    • Et yemeyi ve savaşmayı yasaklayan bu din, Uygurları tarıma ve yerleşik hayata geçirmiştir.<br/>
+                    • Yerleşik hayatla birlikte mimari, sanat ve şehirleşme gelişmiş ancak Türklerin savaşçı ruhu zayıflamıştır.
+                `,
+                tip: "Böğü Kağan -> Maniheizm -> Yerleşik Hayat -> Savaşçılıkta Azalma",
+                question: "Uygurların Maniheizm dinini benimsemesinin doğrudan sonuçlarından biri değildir?",
+                options: [
+                    "Yerleşik hayata geçilmesi",
+                    "Askeri savaşçılık özelliklerinin zayıflaması",
+                    "Tapınak ve şehir mimarisinin gelişmesi",
+                    "Bütün Türk boylarının tek devlette birleşmesi"
+                ],
+                correct: 3,
+                explanation: "Maniheizm yaşam tarzını değiştirmiştir, siyasi birliği sağlamamıştır."
+            },
+            {
+                id: 7,
+                category: "7. Ünite: İslam Tarihi",
+                title: "Dört Halife Dönemi",
+                icon: "☪️",
+                youtube: "https://www.youtube.com/results?search_query=dort+halife+donemi+tarih",
+                summary: `
+                    • Hz. Muhammed'in vefatından sonra devlet başkanları şura ve seçim usulüyle göreve gelmiştir.<br/>
+                    • Bu nedenle Dört Halife Dönemi 'Cumhuriyet Devri' olarak da anılır.<br/>
+                    • Yöneticile
